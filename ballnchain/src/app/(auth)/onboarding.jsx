@@ -1,32 +1,60 @@
+import Filter from "bad-words";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
-export default function Login() {
+export default function Onboarding() {
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+
+  const filter = new Filter();
+
+  const handleNameChange = (text) => {
+    setName(text);
+    if (error) setError("");
+  };
+
+  const handleOnboarding = () => {
+    if (name.trim().length === 0) {
+      setError("Please enter your name.");
+      return;
+    }
+    if (filter.isProfane(name)) {
+      setError("That name isn't allowed. Please enter a different one.");
+      return;
+    }
+    setError("");
+    console.log("Name submitted:", name);
+  };
+
   return (
-    <View style={styles.namePageCSS}>
+    <View style={styles.onboardingCSS}>
       <View style={styles.header}>
-        <Text style={styles.namePageTitle}>Let's Get it Started</Text>
+        <Text style={styles.onboardingTitle}>Let's Get it Started</Text>
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={styles.namePageSubtitle}>
+        <Text style={styles.onboardingSubtitle}>
           Enter your name and first intitial
         </Text>
         <TextInput
           style={styles.inputCSS}
           placeholder="John D."
           placeholderTextColor="#9CA3AF"
+          value={name}
+          onChangeText={handleNameChange}
         />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
 
-      <Pressable style={styles.namePageButton} onPress={handlenamePage}>
-        <Text style={styles.namePageButtonText}>Continue</Text>
+      <Pressable style={styles.onboardingButton} onPress={handleOnboarding}>
+        <Text style={styles.onboardingButtonText}>Continue</Text>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  namePageCSS: {
+  onboardingCSS: {
     flex: 1,
     backgroundColor: "cyan",
     justifyContent: "center",
@@ -37,14 +65,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 40,
   },
-  namePageTitle: {
+  onboardingTitle: {
     fontFamily: "System",
     fontWeight: "700",
     fontSize: 32,
     color: "#111827",
     textAlign: "center",
   },
-  namePageSubtitle: {
+  onboardingSubtitle: {
     fontFamily: "System",
     fontWeight: "600",
     fontSize: 16,
@@ -68,7 +96,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     width: "100%",
   },
-  namePageButton: {
+  onboardingButton: {
     width: "100%",
     height: 50,
     backgroundColor: "#111827",
@@ -76,10 +104,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  namePageButtonText: {
+  onboardingButtonText: {
     fontFamily: "System",
     fontWeight: "600",
     color: "#FFFFFF",
     fontSize: 16,
+  },
+  errorText: {
+    fontFamily: "System",
+    color: "#DC2626",
+    fontSize: 13,
+    marginTop: 6,
   },
 });

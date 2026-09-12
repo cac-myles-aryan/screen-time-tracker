@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
-import Login from "./login";
-
+import Home from "./(tabs)/home";
+import Login from "./(auth)/login";
 export default function Index() {
   return (
     <>
