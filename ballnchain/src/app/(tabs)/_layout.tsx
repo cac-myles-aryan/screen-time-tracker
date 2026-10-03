@@ -1,17 +1,49 @@
 import { Tabs } from "expo-router";
+import { House, User } from "phosphor-react-native";
 
-export default function TabsLayout() {
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: "#111827",
-        tabBarInactiveTintColor: "#9CA3AF",
-        tabBarStyle: { height: 60, paddingBottom: 8, paddingTop: 8 },
+        tabBarActiveTintColor: "cyan",
+        tabBarInactiveTintColor: "#9ca3af",
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: "#f3f4f6",
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
+        },
+        headerShown: true,
       }}
     >
-      <Tabs.Screen name="home" options={{ title: "Home" }} />
-      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, focused }) => (
+            <House
+              size={26}
+              color={color as string}
+              weight={focused ? "fill" : "regular"}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <User
+              size={26}
+              color={color as string}
+              weight={focused ? "fill" : "regular"}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

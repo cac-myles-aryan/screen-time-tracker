@@ -87,13 +87,7 @@ export default function Home() {
         <Pressable style={styles.modalOverlay} onPress={resetAndClose}>
           <Pressable style={styles.modalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>New Focus Session</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Focus session name"
-              placeholderTextColor="#9CA3AF"
-              value={sessionName}
-              onChangeText={setSessionName}
-            />
+
             <View style={styles.durationRow}>
               {durationOptions.map((option) => (
                 <Pressable
@@ -118,13 +112,26 @@ export default function Home() {
             {isCustomSelected && (
               <TextInput
                 style={styles.modalInput}
-                placeholder="Enter minutes"
+                label="minutes"
+                placeholder="Enter custom duration"
                 placeholderTextColor="#9CA3AF"
                 keyboardType="number-pad"
                 value={customDuration}
                 onChangeText={setCustomDuration}
               />
             )}
+            <View>
+              <Text style={styles.modalTitle}>
+                What will you be working on? (optional)
+              </Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Chemistry homework"
+                placeholderTextColor="#9CA3AF"
+                value={sessionName}
+                onChangeText={setSessionName}
+              />
+            </View>
             <Pressable
               style={[
                 styles.startButton,
@@ -133,7 +140,7 @@ export default function Home() {
               onPress={handleStartSession}
               disabled={!canStart}
             >
-              <Text style={styles.startButtonText}>Start Session</Text>
+              <Text style={styles.startButtonText}>Lock IN!</Text>
             </Pressable>
           </Pressable>
         </Pressable>
