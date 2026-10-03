@@ -5,21 +5,31 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "cyan",
-        tabBarInactiveTintColor: "#9ca3af",
+        tabBarActiveTintColor: "#0891B2",
+        tabBarInactiveTintColor: "#94A3B8",
         tabBarStyle: {
-          backgroundColor: "#ffffff",
-          borderTopWidth: 1,
-          borderTopColor: "#f3f4f6",
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 60,
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 0,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          elevation: 12,
+          paddingBottom: 34,
+          paddingTop: 10,
+          height: 86,
         },
-        headerShown: true,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "700",
+          letterSpacing: 0.3,
+          marginTop: 2,
+        },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }) => (

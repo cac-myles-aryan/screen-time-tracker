@@ -8,16 +8,17 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Phone } from "phosphor-react-native";
 import { supabase } from "../../lib/supabase";
 
 export default function Login() {
   const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [error, setError] = useState("");
+  const [focused, setFocused] = useState(false);
 
   function formatPhone(number) {
     const numbers = number.replace(/\D/g, "");
-
     const formattedNumber = numbers.replace(
       /(\d{3})(\d{3})(\d{4})/,
       "($1) $2-$3",
@@ -29,11 +30,9 @@ export default function Login() {
 
   async function handleLogin() {
     setError("");
-
     const { error } = await supabase.auth.signInWithOtp({
       phone: phoneNumber.replace(/^\((\d{3})\)\s*(\d{3})-(\d{4})$/, "+1$1$2$3"),
     });
-
     if (error) {
       console.log("Error sending OTP:", error.message);
       setError("Something went wrong. Please try again.");
@@ -52,17 +51,26 @@ export default function Login() {
         </View>
 
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.inputCSS}
-            placeholder="Enter your phone number"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={(e) => {
-              setPhoneNumber(formatPhone(e));
-              if (error) setError("");
-            }}
-          />
+          <View style={[styles.inputWrapper, focused && styles.inputWrapperFocused]}>
+            <Phone
+              size={20}
+              color={focused ? "#0891B2" : "#94A3B8"}
+              weight="bold"
+            />
+            <TextInput
+              style={styles.inputCSS}
+              placeholder="Enter your phone number"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
+              value={phoneNumber}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              onChangeText={(e) => {
+                setPhoneNumber(formatPhone(e));
+                if (error) setError("");
+              }}
+            />
+          </View>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
 
@@ -87,68 +95,92 @@ const styles = StyleSheet.create({
   },
   loginPage: {
     flex: 1,
-    backgroundColor: "cyan",
+    backgroundColor: "#22D3EE",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
+    gap: 32,
   },
   header: {
     alignItems: "center",
-    marginBottom: 40,
+    gap: 6,
   },
   loginTitle: {
-    fontFamily: "System",
-    fontWeight: "700",
-    fontSize: 28,
-    color: "#111827",
+    fontSize: 52,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: -1.5,
     textAlign: "center",
   },
   loginSubtitle: {
-    fontFamily: "System",
-    fontWeight: "600",
-    fontSize: 15,
-    color: "#1F2937",
-    marginTop: 8,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.75)",
     textAlign: "center",
   },
   inputContainer: {
     width: "100%",
-    marginBottom: 24,
+    gap: 10,
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    height: 60,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    borderWidth: 2,
+    borderColor: "transparent",
+    shadowColor: "#0891B2",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  inputWrapperFocused: {
+    borderColor: "#0891B2",
   },
   inputCSS: {
-    fontFamily: "System",
-    color: "#111827",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    height: 52,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    width: "100%",
-    textAlign: "center",
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#0E7490",
   },
   errorText: {
-    fontFamily: "System",
-    color: "#DC2626",
     fontSize: 13,
-    marginTop: 6,
+    color: "#FFF",
+    fontWeight: "600",
+    textAlign: "center",
+    backgroundColor: "rgba(0,0,0,0.15)",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    alignSelf: "center",
+    overflow: "hidden",
   },
   loginButton: {
     width: "100%",
-    height: 52,
-    backgroundColor: "#111827",
-    borderRadius: 10,
+    height: 60,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#0891B2",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 6,
   },
   loginButtonDisabled: {
-    backgroundColor: "#6B7280",
+    backgroundColor: "rgba(255,255,255,0.35)",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   loginButtonText: {
-    fontFamily: "System",
-    fontWeight: "600",
-    color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#0891B2",
+    letterSpacing: 0.2,
   },
 });

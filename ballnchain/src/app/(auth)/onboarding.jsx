@@ -1,6 +1,7 @@
 import Filter from "bad-words";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import supabase from "../../lib/supabase";
 
 export default function Onboarding() {
   const [name, setName] = useState("");
@@ -22,6 +23,7 @@ export default function Onboarding() {
       setError("That name isn't allowed. Please enter a different one.");
       return;
     }
+    supabase.update({ name: name.trim() }).eq("id", supabase.auth.getUser().id);
     setError("");
     console.log("Name submitted:", name);
   };
