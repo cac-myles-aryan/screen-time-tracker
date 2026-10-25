@@ -1,7 +1,10 @@
 import { Tabs } from "expo-router";
 import { House, User } from "phosphor-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+  const bottom = Math.max(insets.bottom, 12);
   return (
     <Tabs
       screenOptions={{
@@ -15,9 +18,9 @@ export default function TabLayout() {
           shadowOpacity: 0.06,
           shadowRadius: 12,
           elevation: 12,
-          paddingBottom: 34,
+          paddingBottom: bottom,
           paddingTop: 10,
-          height: 86,
+          height: 52 + bottom,
         },
         tabBarLabelStyle: {
           fontSize: 11,

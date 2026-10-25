@@ -1,6 +1,8 @@
 import { useRouter } from "expo-router";
+import { setPendingPhone } from "../../lib/authState";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Keyboard,
   Pressable,
   StyleSheet,
@@ -16,29 +18,36 @@ export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   function formatPhone(number) {
-    const numbers = number.replace(/\D/g, "");
-    const formattedNumber = numbers.replace(
-      /(\d{3})(\d{3})(\d{4})/,
-      "($1) $2-$3",
-    );
-    return formattedNumber;
+    const d = number.replace(/\D/g, "").slice(0, 10);
+    if (d.length < 4) return d;
+    if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+    return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
   }
 
   const isValidPhone = /^\(\d{3}\) \d{3}-\d{4}$/.test(phoneNumber);
 
   async function handleLogin() {
+    if (loading) return;
     setError("");
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: phoneNumber.replace(/^\((\d{3})\)\s*(\d{3})-(\d{4})$/, "+1$1$2$3"),
-    });
-    if (error) {
-      console.log("Error sending OTP:", error.message);
-      setError("Something went wrong. Please try again.");
-    } else {
-      console.log("OTP sent successfully");
-      router.push("/otp");
+    setLoading(true);
+    const formatted = phoneNumber.replace(/^\((\d{3})\)\s*(\d{3})-(\d{4})$/, "+1$1$2$3");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ phone: formatted });
+      if (error) {
+        console.log("Error sending OTP:", error.message);
+        setError(error.message || "Something went wrong. Please try again.");
+        return;
+      }
+      setPendingPhone(formatted);
+      router.push("/(auth)/otp");
+    } catch (e) {
+      console.log("Error sending OTP:", e?.message);
+      setError("Couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -59,9 +68,11 @@ export default function Login() {
             />
             <TextInput
               style={styles.inputCSS}
-              placeholder="Enter your phone number"
+              placeholder="(555) 123-4567"
               placeholderTextColor="#9CA3AF"
               keyboardType="phone-pad"
+              textContentType="telephoneNumber"
+              autoComplete="tel"
               value={phoneNumber}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
@@ -77,12 +88,16 @@ export default function Login() {
         <Pressable
           style={[
             styles.loginButton,
-            !isValidPhone && styles.loginButtonDisabled,
+            (!isValidPhone || loading) && styles.loginButtonDisabled,
           ]}
           onPress={handleLogin}
-          disabled={!isValidPhone}
+          disabled={!isValidPhone || loading}
         >
-          <Text style={styles.loginButtonText}>Continue</Text>
+          {loading ? (
+            <ActivityIndicator color="#0891B2" />
+          ) : (
+            <Text style={styles.loginButtonText}>Continue</Text>
+          )}
         </Pressable>
       </View>
     </Pressable>

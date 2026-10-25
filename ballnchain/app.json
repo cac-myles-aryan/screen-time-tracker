@@ -9,7 +9,13 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.anonymous.ballnchain"
+      "bundleIdentifier": "com.anonymous.ballnchain",
+      "entitlements": {
+        "com.apple.developer.family-controls": true,
+        "com.apple.security.application-groups": [
+          "group.com.anonymous.ballnchain"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -35,7 +41,15 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image",
+      "expo-web-browser",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Ball and Chain lists your contacts so you can pick who holds you accountable."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { getPendingPhone } from "../../lib/authState";
 import { supabase } from "../../lib/supabase";
 import {
+  ActivityIndicator,
   Keyboard,
   Pressable,
   StyleSheet,
@@ -8,13 +10,14 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+
 
 export default function OTP() {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(false);
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const phone = getPendingPhone();
 
   const handleOtpChange = (text) => {
     const digitsOnly = text.replace(/\D/g, "").slice(0, 6);
@@ -22,27 +25,39 @@ export default function OTP() {
     if (error) setError("");
   };
 
-  const handleOTP = () => {
+  const handleOTP = async () => {
+    if (loading) return;
     setError("");
     if (otp.length !== 6) {
       setError("OTP must be exactly 6 digits.");
       return;
     }
-    const { error } = supabase.auth.verifyOtp({
-      //phone:
-      //type: "sms",
-      //token: otp,
-    });
-    if (error) {
-      console.log("Error verifying OTP:", error.message);
-      setError("Invalid OTP. Please try again.");
-    } else {
-      console.log("OTP verified successfully");
-      router.push("/(tabs)/home");
+    if (!phone) {
+      setError("Session expired. Please go back and enter your number.");
+      return;
+    }
+    setLoading(true);
+    // On success the auth provider picks up the new session and routes to
+    // onboarding or home, so there is nothing to navigate to here.
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone: phone,
+        type: "sms",
+        token: otp,
+      });
+      if (error) {
+        console.log("Error verifying OTP:", error.message);
+        setError("Invalid or expired code. Please try again.");
+      }
+    } catch (e) {
+      console.log("Error verifying OTP:", e?.message);
+      setError("Couldn't reach the server. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const isComplete = otp.length === 6;
+  const isComplete = otp.length === 6 && !loading;
 
   return (
     <Pressable style={styles.flexFill} onPress={Keyboard.dismiss}>
@@ -58,6 +73,8 @@ export default function OTP() {
             placeholder="000000"
             placeholderTextColor="#b1b1b1"
             keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
             keyboardAppearance="light"
             value={otp}
             onChangeText={handleOtpChange}
@@ -73,9 +90,13 @@ export default function OTP() {
           onPress={handleOTP}
           disabled={!isComplete}
         >
-          <Text style={[styles.otpButtonText, !isComplete && styles.otpButtonTextDisabled]}>
-            Verify
-          </Text>
+          {loading ? (
+            <ActivityIndicator color="#0891B2" />
+          ) : (
+            <Text style={[styles.otpButtonText, !isComplete && styles.otpButtonTextDisabled]}>
+              Verify
+            </Text>
+          )}
         </Pressable>
       </View>
     </Pressable>

@@ -1,19 +1,18 @@
-import { StyleSheet } from "react-native";
-//import Home from "./(tabs)/home";
-import Login from "./(auth)/login";
-import OTP from "./(auth)/otp";
+import { Redirect } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
+import { useAuth } from "../lib/auth";
 
-import { Redirect } from 'expo-router';
-
+// The root layout already shows the splash/error states; this just routes by status.
 export default function Index() {
-  return <Redirect href="/(tabs)/home" />;
+  const { status } = useAuth();
+
+  if (status === "ready") return <Redirect href="/home" />;
+  if (status === "needsProfile") return <Redirect href="/onboarding" />;
+  if (status === "signedOut") return <Redirect href="/login" />;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#22D3EE", justifyContent: "center" }}>
+      <ActivityIndicator color="#FFFFFF" size="large" />
+    </View>
+  );
 }
-
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
