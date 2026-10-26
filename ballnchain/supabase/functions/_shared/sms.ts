@@ -16,5 +16,8 @@ export async function sendSms(to: string, body: string) {
       }),
     },
   );
-  if (!res.ok) throw new Error(`SMS failed (${res.status})`);
+  if (!res.ok) {
+    const detail = await res.json().then((j) => j.message).catch(() => "");
+    throw new Error(`SMS failed (${res.status})${detail ? `: ${detail}` : ""}`);
+  }
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import * as Contacts from "expo-contacts";
+import * as Contacts from "expo-contacts/legacy";
 import { useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
@@ -17,11 +17,11 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Focus from "../../../modules/focus-control/src";
-import { FAKE_CONTACTS, shouldFakeContacts } from "../../lib/fakeContacts";
 import { toE164 } from "../../lib/phone";
-import { getMyActiveSession, requestEndEarly, reportTamper, sendHeartbeat, startSelfSession } from "../../lib/session_handler";
+import { confirmEndEarly, getMyActiveSession, requestEndEarly, reportTamper, sendHeartbeat, startSelfSession } from "../../lib/session_handler";
 
 // iOS rejects Screen Time schedules shorter than 15 minutes.
 const MIN_MINUTES = 15;
@@ -30,17 +30,12 @@ const durationOptions = [30, 60, 90, "custom"];
 
 async function fetchContacts() {
   try {
-    let data;
-    if (shouldFakeContacts()) {
-      data = FAKE_CONTACTS;
-    } else {
-      const { status } = await Contacts.requestPermissionsAsync();
-      if (status !== "granted") return { state: "denied", contacts: [] };
-      ({ data } = await Contacts.getContactsAsync({
-        fields: [Contacts.Fields.PhoneNumbers],
-        sort: Contacts.SortTypes.FirstName,
-      }));
-    }
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status !== "granted") return { state: "denied", contacts: [] };
+    const { data } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.PhoneNumbers],
+      sort: Contacts.SortTypes.FirstName,
+    });
     const rows = [];
     for (const c of data) {
       const name = c.name?.trim();
@@ -51,7 +46,7 @@ async function fetchContacts() {
     return { state: "ready", contacts: rows };
   } catch (e) {
     console.log("Error loading contacts:", e.message);
-    return { state: "error", contacts: [] };
+    return { state: "error", contacts: [], message: String(e?.message ?? e) };
   }
 }
 
@@ -166,12 +161,14 @@ export default function Home() {
     target !== null;
 
   const [contactsAttempt, setContactsAttempt] = useState(0);
+  const [contactsError, setContactsError] = useState("");
   useEffect(() => {
     let cancelled = false;
     fetchContacts().then((result) => {
       if (cancelled) return;
       setContacts(result.contacts);
       setContactsState(result.state);
+      setContactsError(result.message ?? "");
     });
     return () => {
       cancelled = true;
@@ -260,7 +257,7 @@ export default function Home() {
   const confirmRequestEnd = () => {
     Alert.alert(
       "Request to end early?",
-      `${active?.contact_name || "Your accountability contact"} will be texted and must approve before your session ends.`,
+      `${active?.contact_name || "Your accountability contact"} will be texted a code. Enter it to end your session.`,
       [
         { text: "Keep focusing", style: "cancel" },
         {
@@ -282,25 +279,22 @@ export default function Home() {
     );
   };
 
-  // While a request waits on the contact, poll for their answer. An approval
-  // ends the session server-side, so lift the shield when it disappears.
-  useEffect(() => {
-    if (endStatus !== "pending") return;
-    const id = setInterval(async () => {
-      try {
-        const next = await getMyActiveSession();
-        if (!next) {
-          if (Focus.isBlockingAvailable) await Focus.stopBlocking();
-          setSession(null);
-        } else {
-          setSession(next);
-        }
-      } catch (e) {
-        console.log("Error checking request:", e.message);
-      }
-    }, 5000);
-    return () => clearInterval(id);
-  }, [endStatus]);
+  const [endCode, setEndCode] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const submitEndCode = async () => {
+    setConfirming(true);
+    try {
+      await confirmEndEarly(endCode.trim());
+      if (Focus.isBlockingAvailable) await Focus.stopBlocking();
+      setEndCode("");
+      setSession(null);
+    } catch (e) {
+      console.log("Error confirming end:", e.message);
+      Alert.alert("Couldn't end the session", e.message || "Try again.");
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   const closeModal = () => {
     Keyboard.dismiss();
@@ -310,53 +304,81 @@ export default function Home() {
 
   if (active) {
     return (
-      <View
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <Pressable
+        onPress={Keyboard.dismiss}
+        accessible={false}
         style={[
           styles.homeCSS,
           styles.focusScreen,
           { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
         ]}
       >
-        <Text style={styles.focusTitle} adjustsFontSizeToFit numberOfLines={1}>
-          FOCUSED
-        </Text>
+        <Animated.View entering={FadeIn.duration(700)}>
+          <Text style={styles.focusTitle} adjustsFontSizeToFit numberOfLines={1}>
+            FOCUSED
+          </Text>
+        </Animated.View>
 
-        <View style={styles.focusMiddle}>
+        <Animated.View entering={FadeIn.delay(250).duration(700)} style={styles.focusMiddle}>
           <Text style={styles.focusTimer} adjustsFontSizeToFit numberOfLines={1}>
             {countdown(active.expiry_at, now)}
           </Text>
           <Text style={styles.focusRemaining}>remaining</Text>
-        </View>
+        </Animated.View>
 
-        <Text style={styles.focusContact}>
-          Accountability: {active.contact_name || active.contact_phone}
-        </Text>
+        <Animated.View entering={FadeIn.delay(600).duration(600)}>
+          <Text style={styles.focusContact}>
+            Accountability: {active.contact_name || active.contact_phone}
+          </Text>
+        </Animated.View>
 
-        {endStatus === "denied" ? (
-          <Text style={styles.focusContact}>Request denied. Keep going.</Text>
+        {endStatus === "pending" ? (
+          <>
+            <Text style={styles.focusContact}>
+              Ask {active.contact_name || "your contact"} for the code they were texted.
+            </Text>
+            <TextInput
+              style={[styles.search, { textAlign: "center", marginBottom: 12 }]}
+              placeholder="Code"
+              placeholderTextColor="#9CA3AF"
+              value={endCode}
+              onChangeText={setEndCode}
+              keyboardType="number-pad"
+              maxLength={10}
+            />
+            <Pressable
+              style={[styles.focusEndButton, (confirming || !endCode.trim()) && { opacity: 0.6 }]}
+              onPress={submitEndCode}
+              disabled={confirming || !endCode.trim()}
+            >
+              <Text style={styles.focusEndText}>end session</Text>
+            </Pressable>
+          </>
         ) : null}
         <Pressable
-          style={[
-            styles.focusEndButton,
-            (requesting || endStatus === "pending") && { opacity: 0.6 },
-          ]}
+          style={[styles.focusEndButton, { marginTop: 12 }, requesting && { opacity: 0.6 }]}
           onPress={confirmRequestEnd}
-          disabled={requesting || endStatus === "pending"}
+          disabled={requesting}
         >
           <Text style={styles.focusEndText}>
-            {endStatus === "pending" ? "waiting for approval…" : "request to end early"}
+            {endStatus === "pending" ? "send a new code" : "request to end early"}
           </Text>
         </Pressable>
-      </View>
+      </Pressable>
+      </KeyboardAvoidingView>
     );
   }
 
   return (
     <View style={styles.homeCSS}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <Animated.View
+        entering={FadeIn.duration(700)}
+        style={[styles.header, { paddingTop: insets.top + 16 }]}
+      >
         <Text style={styles.homeTitle}>Ball and Chain</Text>
         <Text style={styles.homeSubtitle}>Start a Focus Session</Text>
-      </View>
+      </Animated.View>
 
       {loading || contactsState === "loading" ? (
         <ActivityIndicator color="#FFFFFF" style={{ marginTop: 32 }} />
@@ -373,13 +395,13 @@ export default function Home() {
         </View>
       ) : contactsState === "error" ? (
         <View style={styles.emptyBlock}>
-          <Text style={styles.emptyText}>Couldn&apos;t load your contacts.</Text>
+          <Text style={styles.emptyText}>Couldn&apos;t load your contacts.{contactsError ? `\n${contactsError}` : ""}</Text>
           <Pressable style={styles.secondaryButton} onPress={retryContacts}>
             <Text style={styles.secondaryButtonText}>Try again</Text>
           </Pressable>
         </View>
       ) : (
-        <>
+        <Animated.View entering={FadeIn.delay(350).duration(700)} style={{ flex: 1 }}>
           <TextInput
             style={styles.search}
             placeholder="Search contacts"
@@ -417,7 +439,7 @@ export default function Home() {
               ))
             )}
           </ScrollView>
-        </>
+        </Animated.View>
       )}
 
       <Modal visible={target !== null} transparent animationType="fade" onRequestClose={closeModal}>

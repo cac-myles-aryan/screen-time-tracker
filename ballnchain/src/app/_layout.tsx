@@ -1,17 +1,14 @@
 import { Stack } from "expo-router";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { AuthProvider, useAuth } from "../lib/auth";
+import LoadingScreen from "../lib/LoadingScreen";
 import { supabase } from "../lib/supabase";
 
 function RootNavigator() {
   const { status, refreshProfile } = useAuth();
 
   if (status === "loading") {
-    return (
-      <View style={styles.page}>
-        <ActivityIndicator color="#FFFFFF" size="large" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   if (status === "error") {

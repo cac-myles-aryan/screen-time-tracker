@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "../lib/auth";
+import LoadingScreen from "../lib/LoadingScreen";
 
 // The root layout already shows the splash/error states; this just routes by status.
 export default function Index() {
@@ -10,9 +10,5 @@ export default function Index() {
   if (status === "needsProfile") return <Redirect href="/onboarding" />;
   if (status === "signedOut") return <Redirect href="/login" />;
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#22D3EE", justifyContent: "center" }}>
-      <ActivityIndicator color="#FFFFFF" size="large" />
-    </View>
-  );
+  return <LoadingScreen />;
 }

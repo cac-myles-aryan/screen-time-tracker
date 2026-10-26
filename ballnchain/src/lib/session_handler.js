@@ -67,12 +67,26 @@ export async function sendHeartbeat() {
   if (error) throw error;
 }
 
-// Texts the accountability contact a link to approve or deny ending the
-// session early. The session only ends if they approve; poll
-// getMyActiveSession().end_request_status for the answer.
+// Texts the accountability contact a one-time code. The session only ends
+// once confirmEndEarly() gets that code; calling this again sends a new one.
 export async function requestEndEarly() {
   const { data, error } = await supabase.functions.invoke("request-end");
-  if (error) throw error;
+  if (error) {
+    const body = await error.context?.json?.().catch(() => null);
+    throw new Error(body?.error || error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+// Ends the session if `code` matches the one texted to the contact by
+// requestEndEarly().
+export async function confirmEndEarly(code) {
+  const { data, error } = await supabase.functions.invoke("confirm-end", { body: { code } });
+  if (error) {
+    const body = await error.context?.json?.().catch(() => null);
+    throw new Error(body?.error || error.message);
+  }
   if (data?.error) throw new Error(data.error);
   return data;
 }
